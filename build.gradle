@@ -1,0 +1,94 @@
+plugins {
+    id "io.freefair.lombok" version "${lombokPluginVersion}"
+    id 'java-library'
+    id 'java'
+    id 'maven-publish'
+    id 'net.ltgt.errorprone' version '4.0.1'
+    id 'idea'
+    id 'signing'
+}
+
+group "${projectGroup}"
+version "${projectVersion}"
+
+
+java {
+    sourceCompatibility = JavaVersion.VERSION_11
+    targetCompatibility = JavaVersion.VERSION_11
+    withSourcesJar()
+    withJavadocJar()
+}
+
+allprojects {
+    repositories {
+        mavenCentral()
+    }
+}
+
+publishing {
+    publications {
+        mavenJava(MavenPublication) {
+            groupId = "${projectGroup}"
+            artifactId = "${projectName}"
+            version = "${projectVersion}"
+            from components.java
+
+            pom {
+                name = 'Lark Client'
+                description = 'Dead simple Lark webhook client'
+                url = "${aboutPage}"
+
+                licenses {
+                    license {
+                        name = 'MIT License'
+                        url = 'https://opensource.org/licenses/MIT'
+                    }
+                }
+                developers {
+                    developer {
+                        id = "${aboutDeveloperId}"
+                        name = "${aboutDeveloperName}"
+                        email = "${aboutDeveloperEmail}"
+                    }
+                }
+            }
+        }
+    }
+    repositories {
+        maven {
+            // change URLs to point to your repos, e.g. http://my.org/repo
+            def releasesRepoUrl = layout.buildDirectory.dir('repos/releases')
+            def snapshotsRepoUrl = layout.buildDirectory.dir('repos/snapshots')
+            url = version.endsWith('SNAPSHOT') ? snapshotsRepoUrl : releasesRepoUrl
+        }
+    }
+}
+
+dependencies {
+    errorprone "com.google.errorprone:error_prone_core:$errorProneVersion"
+    compileOnly 'org.projectlombok:lombok'
+    annotationProcessor 'org.projectlombok:lombok'
+}
+
+tasks.withType(JavaCompile).configureEach {
+    options.errorprone.disableWarningsInGeneratedCode = true
+    options.errorprone.errorproneArgs = [
+        '-Xep:UnusedMethod:OFF',
+        '-Xep:JavaTimeDefaultTimeZone:OFF'
+    ]
+}
+
+jar {
+    archiveClassifier = ''
+    enabled = true
+}
+
+javadoc {
+    if (JavaVersion.current().isJava9Compatible()) {
+        options.addBooleanOption('html5', true)
+    }
+}
+
+signing {
+    sign publishing.publications.mavenJava
+}

@@ -8,23 +8,26 @@ import org.eclipse.jetty.client.HttpClient;
 import org.eclipse.jetty.client.Request;
 import org.eclipse.jetty.client.Response;
 import org.eclipse.jetty.http.HttpMethod;
+import org.eclipse.jetty.util.component.LifeCycle;
 import org.jose4j.jws.AlgorithmIdentifiers;
 import org.jose4j.jws.JsonWebSignature;
 import org.jose4j.jwt.JwtClaims;
 import org.jose4j.lang.JoseException;
 
+import java.io.Closeable;
 import java.net.MalformedURLException;
 import java.net.URL;
-import java.security.*;
-import java.security.spec.InvalidKeySpecException;
+import java.security.GeneralSecurityException;
+import java.security.KeyPair;
+import java.security.KeyPairGenerator;
+import java.security.PrivateKey;
 import java.time.Instant;
 import java.util.Base64;
 import java.util.Random;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 
-public final class VapidPusher {
-    private static final String SERVER_KEY_ID = "server-key-id";
+public final class VapidPusher implements Closeable {
     private final ConcurrentHashMap<String, ReusableWebPushKeys> cache = new ConcurrentHashMap<>();
 
     private final Random random;
@@ -55,14 +58,20 @@ public final class VapidPusher {
 
     private final long pushTimeoutNanos;
 
-    private VapidPusher(String subject,
-                        String encodedPublicKey,
-                        String encodedPrivateKey,
-                        long pushTimeoutNanos,
-                        long vapidTokenExpireNanos,
-                        long localKeyExpireNanos,
-                        HttpClient client,
-                        Random random) throws NoSuchAlgorithmException, InvalidKeySpecException, NoSuchProviderException {
+    public static VapidPusherBuilder builder(String subject,
+                                             String encodedPublicKey,
+                                             String encodedPrivateKey) {
+        return new VapidPusherBuilder(subject, encodedPublicKey, encodedPrivateKey);
+    }
+
+    VapidPusher(String subject,
+                String encodedPublicKey,
+                String encodedPrivateKey,
+                long pushTimeoutNanos,
+                long vapidTokenExpireNanos,
+                long localKeyExpireNanos,
+                HttpClient client,
+                Random random) throws Exception {
         this.subject = subject;
         this.client = client;
         this.random = random;
@@ -80,6 +89,9 @@ public final class VapidPusher {
         }
         final var pk = Utils.encode((ECPublicKey) publicKey);
         base64PublicKeyCryptoWithoutPadding = "p256ecdsa=" + Base64.getUrlEncoder().withoutPadding().encodeToString(pk);
+
+        // Start the client.
+        this.client.start();
     }
 
     /**
@@ -112,6 +124,12 @@ public final class VapidPusher {
                     header.add("TTL", String.valueOf(options.ttl()));
                     header.add("Content-Encoding", "aes128gcm");
                     header.add("Authorization", "vapid t=" + keys.jws + ", k=" + base64PublicKeyCryptoWithoutPadding);
+                    if (options.topic() != null && !options.topic().isEmpty()) {
+                        header.add("Topic", options.topic());
+                    }
+                    if (options.urgency() != null) {
+                        header.add("Urgency", options.urgency().getHeaderValue());
+                    }
                 })
                 .body(new BytesRequestContent("application/octet-stream", ciphertext));
     }
@@ -169,11 +187,18 @@ public final class VapidPusher {
         }
     }
 
-
     @RequiredArgsConstructor
     private static final class ReusableWebPushKeys {
         final KeyPair keyPair;
         final String jws;
         final Instant expireAt;
+    }
+
+
+    /**
+     * Close the backing {@link HttpClient client}
+     */
+    public void close() {
+        new Thread(() -> LifeCycle.stop(client)).start();
     }
 }

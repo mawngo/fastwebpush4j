@@ -9,4 +9,6 @@ import lombok.experimental.Accessors;
 @Setter
 public class NotificationOptions {
     private long ttl;
+    private String topic;
+    private Urgency urgency;
 }

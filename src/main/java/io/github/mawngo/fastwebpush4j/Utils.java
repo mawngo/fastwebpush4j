@@ -33,17 +33,52 @@ public class Utils {
         }
     }
 
-
     /**
      * Create a byte array of the given length from the given integer.
      */
     public static byte[] toByteArray(int integer, int size) {
         ByteBuffer buffer = ByteBuffer.allocate(size);
         buffer.putInt(integer);
-
         return buffer.array();
     }
 
+    /**
+     * Utility to concat byte arrays
+     */
+    public static byte[] concat(byte[]... arrays) {
+        int lastPos = 0;
+
+        byte[] combined = new byte[combinedLength(arrays)];
+
+        for (byte[] array : arrays) {
+            if (array == null) {
+                continue;
+            }
+
+            System.arraycopy(array, 0, combined, lastPos, array.length);
+
+            lastPos += array.length;
+        }
+
+        return combined;
+    }
+
+    /**
+     * Compute combined array length
+     */
+    public static int combinedLength(byte[]... arrays) {
+        int combinedLength = 0;
+
+        for (byte[] array : arrays) {
+            if (array == null) {
+                continue;
+            }
+
+            combinedLength += array.length;
+        }
+
+        return combinedLength;
+    }
 
     /**
      * Get the uncompressed encoding of the public key point. The resulting array should be 65 bytes length and start with 0x04 followed by the x and
@@ -117,43 +152,5 @@ public class Utils {
         ECPoint sG = g.multiply(((java.security.interfaces.ECPrivateKey) privateKey).getS());
 
         return sG.equals(((ECPublicKey) publicKey).getQ());
-    }
-
-    /**
-     * Utility to concat byte arrays
-     */
-    public static byte[] concat(byte[]... arrays) {
-        int lastPos = 0;
-
-        byte[] combined = new byte[combinedLength(arrays)];
-
-        for (byte[] array : arrays) {
-            if (array == null) {
-                continue;
-            }
-
-            System.arraycopy(array, 0, combined, lastPos, array.length);
-
-            lastPos += array.length;
-        }
-
-        return combined;
-    }
-
-    /**
-     * Compute combined array length
-     */
-    public static int combinedLength(byte[]... arrays) {
-        int combinedLength = 0;
-
-        for (byte[] array : arrays) {
-            if (array == null) {
-                continue;
-            }
-
-            combinedLength += array.length;
-        }
-
-        return combinedLength;
     }
 }

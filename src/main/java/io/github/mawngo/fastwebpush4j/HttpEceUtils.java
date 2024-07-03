@@ -10,7 +10,6 @@ import javax.crypto.Cipher;
 import javax.crypto.KeyAgreement;
 import javax.crypto.spec.GCMParameterSpec;
 import javax.crypto.spec.SecretKeySpec;
-import java.nio.charset.StandardCharsets;
 import java.security.GeneralSecurityException;
 import java.security.InvalidKeyException;
 import java.security.KeyPair;
@@ -47,8 +46,6 @@ public class HttpEceUtils {
      * @param salt      A random 16-byte buffer
      */
     public byte[] encrypt(KeyPair localKeypair, byte[] plaintext, byte[] salt, Subscription subscription, long expireNanos) throws GeneralSecurityException {
-        log("encrypt", plaintext);
-
         // Reuse the local key if it's still valid.
         // expireNanos <= 0 mean we disabled this feature.
         if (subscription.getLocalKey() != null && expireNanos > 0) {
@@ -84,7 +81,6 @@ public class HttpEceUtils {
     }
 
     private byte[] encrypt(byte[] localPublicKey, byte[] secret, byte[] plaintext, byte[] salt) throws GeneralSecurityException {
-        log("encrypt", plaintext);
         byte[][] keyAndNonce = deriveKeyAndNonce(secret, salt);
         return encrypt(keyAndNonce, localPublicKey, plaintext, salt);
     }
@@ -114,18 +110,11 @@ public class HttpEceUtils {
      * Convenience method for computing the HMAC Key Derivation Function. The real work is offloaded to BouncyCastle.
      */
     private static byte[] hkdfExpand(byte[] ikm, byte[] salt, byte[] info, int length) {
-        log("salt", salt);
-        log("ikm", ikm);
-        log("info", info);
-
         HKDFBytesGenerator hkdf = new HKDFBytesGenerator(new SHA256Digest());
         hkdf.init(new HKDFParameters(ikm, salt, info));
 
         byte[] okm = new byte[length];
         hkdf.generateBytes(okm, 0, length);
-
-        log("expand", okm);
-
         return okm;
     }
 
@@ -141,10 +130,6 @@ public class HttpEceUtils {
 
         byte[] hkdf_key = hkdfExpand(secret, salt, keyInfo, 16);
         byte[] hkdf_nonce = hkdfExpand(secret, salt, nonceInfo, 12);
-
-        log("key", hkdf_key);
-        log("nonce", hkdf_nonce);
-
         return new byte[][]{
                 hkdf_key,
                 hkdf_nonce,
@@ -174,16 +159,5 @@ public class HttpEceUtils {
         byte[] ikm = keyAgreement.generateSecret();
         byte[] info = concat(WEB_PUSH_INFO.getBytes(UTF_8), encode(dh), encode(senderPubKey));
         return hkdfExpand(ikm, authSecret, info, SHA_256_LENGTH);
-    }
-
-    /**
-     * Print the length and unpadded url-safe base64 encoding of the byte array.
-     */
-    private static byte[] log(String info, byte[] array) {
-        if ("1".equals(System.getenv("ECE_KEYLOG"))) {
-            System.out.println(info + " [" + array.length + "]: " + Base64.getUrlEncoder().withoutPadding().encodeToString(array));
-        }
-
-        return array;
     }
 }

@@ -1,16 +1,22 @@
 package io.github.mawngo.fastwebpush4j;
 
 
+import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.Setter;
 
 @RequiredArgsConstructor
+@AllArgsConstructor
 @Getter
 @Setter
 public class Subscription {
     private final String endpoint;
     private final Keys keys;
+
+    /**
+     * The generated local key. When enabled, the {@link VapidPusher} will set the generated public key and secret for reusing.
+     */
     private LocalKey localKey;
 
     @RequiredArgsConstructor

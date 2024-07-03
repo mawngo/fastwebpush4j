@@ -2,8 +2,6 @@ package io.github.mawngo.fastwebpush4j;
 
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
-import lombok.Setter;
-import lombok.experimental.Accessors;
 import org.eclipse.jetty.client.HttpClient;
 import org.eclipse.jetty.client.WWWAuthenticationProtocolHandler;
 import org.eclipse.jetty.client.transport.HttpClientConnectionFactory;
@@ -18,8 +16,6 @@ import java.util.Arrays;
 import java.util.Random;
 import java.util.concurrent.TimeUnit;
 
-@Accessors(fluent = true, chain = true)
-@Setter
 @RequiredArgsConstructor(access = AccessLevel.PACKAGE)
 public final class VapidPusherBuilder {
     private final String subject;
@@ -31,6 +27,47 @@ public final class VapidPusherBuilder {
     private long pushTimeoutNanos = TimeUnit.SECONDS.toNanos(30);
     private long vapidTokenExpireNanos = TimeUnit.HOURS.toNanos(6);
     private long localKeyExpireNanos = 0;
+
+
+    /**
+     * Configure the random instance for generating salt.
+     */
+    public VapidPusherBuilder withRandom(Random random) {
+        this.random = random;
+        return this;
+    }
+
+    /**
+     * Configure the client used to push the message. The client must not be started.
+     */
+    public VapidPusherBuilder withClient(HttpClient client) {
+        this.client = client;
+        return this;
+    }
+
+    /**
+     * Configure the maximum timeout when pushed.
+     */
+    public VapidPusherBuilder pushTimeout(long timeout, TimeUnit unit) {
+        this.pushTimeoutNanos = unit.toNanos(timeout);
+        return this;
+    }
+
+    /**
+     * Configure the expiry time of cached vapid token.
+     */
+    public VapidPusherBuilder vapidTokenTTL(long expiry, TimeUnit unit) {
+        this.vapidTokenExpireNanos = unit.toNanos(expiry);
+        return this;
+    }
+
+    /**
+     * Configure the expiry time of cached local public key and secret. Set to 0 to disable any caching.
+     */
+    public VapidPusherBuilder localKeyTTL(long expiry, TimeUnit unit) {
+        this.localKeyExpireNanos = unit.toNanos(expiry);
+        return this;
+    }
 
     /**
      * Use default client with specific http version enabled.
@@ -67,7 +104,7 @@ public final class VapidPusherBuilder {
 
     private HttpClient getClient() {
         if (client == null) {
-            withClientHttpVersion("1.1", "2");
+            withClientHttpVersion("2", "1.1");
         }
         return client;
     }

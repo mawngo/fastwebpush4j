@@ -142,8 +142,15 @@ public final class VapidPusher implements Closeable {
      * @see #generateJws jws expire time
      */
     private ReusableWebPushKeys generateKeys(String origin) {
+        var now = Instant.now();
+        if (vapidTokenExpireNanos <= 0) {
+            return new ReusableWebPushKeys(
+                    generateLocalKeyPair(),
+                    generateJws(origin),
+                    now
+            );
+        }
         return cache.compute(origin, (ignored, pushKeys) -> {
-            var now = Instant.now();
             if (pushKeys == null || pushKeys.expireAt.isBefore(now)) {
                 return new ReusableWebPushKeys(
                         generateLocalKeyPair(),

@@ -68,6 +68,11 @@ dependencies {
     errorprone "com.google.errorprone:error_prone_core:$errorProneVersion"
     compileOnly 'org.projectlombok:lombok'
     annotationProcessor 'org.projectlombok:lombok'
+
+    implementation 'org.eclipse.jetty:jetty-client:12.0.10'
+    implementation 'org.eclipse.jetty.http2:jetty-http2-client-transport:12.0.10'
+    implementation 'org.bouncycastle:bcpkix-jdk15on:1.70'
+    implementation 'org.bitbucket.b_c:jose4j:0.7.9'
 }
 
 tasks.withType(JavaCompile).configureEach {

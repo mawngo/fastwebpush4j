@@ -98,24 +98,14 @@ public class HttpEceUtils {
         GCMParameterSpec params = new GCMParameterSpec(TAG_SIZE * 8, nonce);
         cipher.init(ENCRYPT_MODE, new SecretKeySpec(key, "AES"), params);
 
-        // For AES128GCM suffix {0x02}, for AESGCM prefix {0x00, 0x00}.
-        byte[] header = buildHeader(localPublicKey, salt);
-        log("header", header);
-
-        byte[] padding = new byte[]{2};
-        log("padding", padding);
-
-        byte[][] encrypted = {cipher.update(plaintext), cipher.update(padding), cipher.doFinal()};
-        log("encrypted", concat(encrypted));
-
-        return log("ciphertext", concat(header, concat(encrypted)));
+        // For AES128GCM suffix {0x02}.
+        final byte[] header = buildHeader(localPublicKey, salt, plaintext.length);
+        final byte[] encrypted = concat(cipher.update(plaintext), cipher.update(new byte[]{2}), cipher.doFinal());
+        return concat(header, encrypted);
     }
 
-    private byte[] buildHeader(byte[] localPublicKeyByte, byte[] salt) {
-        if (localPublicKeyByte.length > 255) {
-            throw new IllegalArgumentException("They local public key is too large.");
-        }
-        byte[] rs = toByteArray(4096, 4);
+    private byte[] buildHeader(byte[] localPublicKeyByte, byte[] salt, int len) {
+        byte[] rs = toByteArray(len * 8, 4);
         byte[] idlen = new byte[]{(byte) localPublicKeyByte.length};
         return concat(salt, rs, idlen, localPublicKeyByte);
     }
@@ -176,17 +166,13 @@ public class HttpEceUtils {
      * See <a href="https://tools.ietf.org/html/draft-ietf-webpush-encryption-09#section-3.3">...</a>.
      */
     public byte[] webpushSecret(KeyPair localKeypair, ECPublicKey dh, byte[] authSecret) throws NoSuchAlgorithmException, InvalidKeyException {
-        final var remotePubKey = (ECPublicKey) localKeypair.getPublic();
-
-        log("remote pubkey", encode(remotePubKey));
-        log("sender pubkey", encode(remotePubKey));
-        log("receiver pubkey", encode(dh));
+        ECPublicKey senderPubKey = (ECPublicKey) localKeypair.getPublic();
 
         KeyAgreement keyAgreement = KeyAgreement.getInstance("ECDH");
         keyAgreement.init(localKeypair.getPrivate());
-        keyAgreement.doPhase(remotePubKey, true);
+        keyAgreement.doPhase(dh, true);
         byte[] ikm = keyAgreement.generateSecret();
-        byte[] info = concat(WEB_PUSH_INFO.getBytes(UTF_8), encode(dh), encode(remotePubKey));
+        byte[] info = concat(WEB_PUSH_INFO.getBytes(UTF_8), encode(dh), encode(senderPubKey));
         return hkdfExpand(ikm, authSecret, info, SHA_256_LENGTH);
     }
 

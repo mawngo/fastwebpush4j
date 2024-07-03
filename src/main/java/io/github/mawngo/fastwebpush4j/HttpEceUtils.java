@@ -10,6 +10,7 @@ import javax.crypto.Cipher;
 import javax.crypto.KeyAgreement;
 import javax.crypto.spec.GCMParameterSpec;
 import javax.crypto.spec.SecretKeySpec;
+import java.nio.charset.StandardCharsets;
 import java.security.GeneralSecurityException;
 import java.security.InvalidKeyException;
 import java.security.KeyPair;
@@ -19,6 +20,7 @@ import java.time.temporal.ChronoUnit;
 import java.util.Base64;
 
 import static io.github.mawngo.fastwebpush4j.Utils.*;
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static javax.crypto.Cipher.ENCRYPT_MODE;
 
 /**
@@ -144,8 +146,8 @@ public class HttpEceUtils {
     }
 
     private byte[][] deriveKeyAndNonce(byte[] secret, byte[] salt) {
-        byte[] keyInfo = "Content-Encoding: aes128gcm\0".getBytes();
-        byte[] nonceInfo = "Content-Encoding: nonce\0".getBytes();
+        byte[] keyInfo = "Content-Encoding: aes128gcm\0".getBytes(UTF_8);
+        byte[] nonceInfo = "Content-Encoding: nonce\0".getBytes(UTF_8);
 
         byte[] hkdf_key = hkdfExpand(secret, salt, keyInfo, 16);
         byte[] hkdf_nonce = hkdfExpand(secret, salt, nonceInfo, 12);
@@ -184,7 +186,7 @@ public class HttpEceUtils {
         keyAgreement.init(localKeypair.getPrivate());
         keyAgreement.doPhase(remotePubKey, true);
         byte[] ikm = keyAgreement.generateSecret();
-        byte[] info = concat(WEB_PUSH_INFO.getBytes(), encode(dh), encode(remotePubKey));
+        byte[] info = concat(WEB_PUSH_INFO.getBytes(UTF_8), encode(dh), encode(remotePubKey));
         return hkdfExpand(ikm, authSecret, info, SHA_256_LENGTH);
     }
 

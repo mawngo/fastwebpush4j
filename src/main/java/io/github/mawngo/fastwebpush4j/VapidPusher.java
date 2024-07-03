@@ -3,6 +3,7 @@ package io.github.mawngo.fastwebpush4j;
 import lombok.RequiredArgsConstructor;
 import org.bouncycastle.jce.ECNamedCurveTable;
 import org.bouncycastle.jce.interfaces.ECPublicKey;
+import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.eclipse.jetty.client.BytesRequestContent;
 import org.eclipse.jetty.client.HttpClient;
 import org.eclipse.jetty.client.Request;
@@ -17,10 +18,7 @@ import org.jose4j.lang.JoseException;
 import java.io.Closeable;
 import java.net.MalformedURLException;
 import java.net.URL;
-import java.security.GeneralSecurityException;
-import java.security.KeyPair;
-import java.security.KeyPairGenerator;
-import java.security.PrivateKey;
+import java.security.*;
 import java.time.Instant;
 import java.util.Base64;
 import java.util.Random;
@@ -28,6 +26,10 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 
 public final class VapidPusher implements Closeable {
+    static {
+        Security.addProvider(new BouncyCastleProvider());
+    }
+
     private final ConcurrentHashMap<String, ReusableWebPushKeys> cache = new ConcurrentHashMap<>();
 
     private final Random random;
@@ -88,7 +90,7 @@ public final class VapidPusher implements Closeable {
             throw new IllegalStateException("Public key and private key do not match.");
         }
         final var pk = Utils.encode((ECPublicKey) publicKey);
-        base64PublicKeyCryptoWithoutPadding = "p256ecdsa=" + Base64.getUrlEncoder().withoutPadding().encodeToString(pk);
+        base64PublicKeyCryptoWithoutPadding = Base64.getUrlEncoder().withoutPadding().encodeToString(pk);
 
         // Start the client.
         this.client.start();
@@ -198,6 +200,7 @@ public final class VapidPusher implements Closeable {
     /**
      * Close the backing {@link HttpClient client}
      */
+    @Override
     public void close() {
         new Thread(() -> LifeCycle.stop(client)).start();
     }

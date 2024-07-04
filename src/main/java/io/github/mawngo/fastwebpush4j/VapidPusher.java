@@ -1,6 +1,5 @@
 package io.github.mawngo.fastwebpush4j;
 
-import lombok.RequiredArgsConstructor;
 import org.bouncycastle.jce.ECNamedCurveTable;
 import org.bouncycastle.jce.interfaces.ECPublicKey;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
@@ -25,15 +24,28 @@ import java.util.Random;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 
+/**
+ * Vapid push service.
+ */
 public final class VapidPusher implements Closeable {
+    // Initialize the BouncyCastle provider.
     static {
         Security.addProvider(new BouncyCastleProvider());
     }
 
+    /**
+     * Vapid token and local key cache
+     */
     private final ConcurrentHashMap<String, ReusableWebPushKeys> cache = new ConcurrentHashMap<>();
 
+    /**
+     * Random generator for generating salt.
+     */
     private final Random random;
 
+    /**
+     * Client used to send notification
+     */
     private final HttpClient client;
 
     /**
@@ -56,10 +68,19 @@ public final class VapidPusher implements Closeable {
      */
     private final long vapidTokenExpireNanos;
 
+    /**
+     * The generate local secret and public key timeout
+     */
     private final long localKeyExpireNanos;
 
+    /**
+     * The push sending timeout
+     */
     private final long pushTimeoutNanos;
 
+    /**
+     * New {@link VapidPusherBuilder} for creating {@link VapidPusher} instance.
+     */
     public static VapidPusherBuilder builder(String subject,
                                              String encodedPublicKey,
                                              String encodedPrivateKey) {
@@ -97,7 +118,7 @@ public final class VapidPusher implements Closeable {
     }
 
     /**
-     * Create webpush request. After created, use {@link Request#send(Response.CompleteListener) send} to send request
+     * Create webpush request. After created, use {@link Request#send(Response.CompleteListener) send} to send request.
      */
     public Request prepareRequest(byte[] payload, Subscription subscription, NotificationOptions options) {
         try {
@@ -107,6 +128,11 @@ public final class VapidPusher implements Closeable {
         }
     }
 
+    /**
+     * Create webpush request. After created, use {@link Request#send(Response.CompleteListener) send} to send request.
+     *
+     * @see #prepareRequest(byte[], Subscription, NotificationOptions)
+     */
     public Request prepareRequest(byte[] payload, Subscription subscription) {
         return prepareRequest(payload, subscription, new NotificationOptions());
     }
@@ -142,7 +168,7 @@ public final class VapidPusher implements Closeable {
      * @see #generateJws jws expire time
      */
     private ReusableWebPushKeys generateKeys(String origin) {
-        var now = Instant.now();
+        final var now = Instant.now();
         if (vapidTokenExpireNanos <= 0) {
             return new ReusableWebPushKeys(
                     generateLocalKeyPair(),
@@ -168,7 +194,7 @@ public final class VapidPusher implements Closeable {
     private static KeyPair generateLocalKeyPair() {
         try {
             final var parameterSpec = ECNamedCurveTable.getParameterSpec("prime256v1");
-            KeyPairGenerator keyPairGenerator = KeyPairGenerator.getInstance("ECDH", "BC");
+            final KeyPairGenerator keyPairGenerator = KeyPairGenerator.getInstance("ECDH", "BC");
             keyPairGenerator.initialize(parameterSpec);
 
             return keyPairGenerator.generateKeyPair();
@@ -196,11 +222,7 @@ public final class VapidPusher implements Closeable {
         }
     }
 
-    @RequiredArgsConstructor
-    private static final class ReusableWebPushKeys {
-        final KeyPair keyPair;
-        final String jws;
-        final Instant expireAt;
+    private record ReusableWebPushKeys(KeyPair keyPair, String jws, Instant expireAt) {
     }
 
 

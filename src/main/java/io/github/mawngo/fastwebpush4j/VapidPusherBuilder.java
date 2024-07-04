@@ -16,6 +16,9 @@ import java.util.Arrays;
 import java.util.Random;
 import java.util.concurrent.TimeUnit;
 
+/**
+ * Builder for {@link VapidPusher}
+ */
 @RequiredArgsConstructor(access = AccessLevel.PACKAGE)
 public final class VapidPusherBuilder {
     private final String subject;
@@ -109,6 +112,9 @@ public final class VapidPusherBuilder {
         return client;
     }
 
+    /**
+     * Build the {@link VapidPusher}
+     */
     public VapidPusher build() throws Exception {
         return new VapidPusher(
                 subject,
@@ -120,5 +126,16 @@ public final class VapidPusherBuilder {
                 getClient(),
                 getRandom()
         );
+    }
+
+    /**
+     * Build the {@link VapidPusher} or throw {@link IllegalArgumentException} if keypair or client is invalid.
+     */
+    public VapidPusher buildOrThrow() {
+        try {
+            return build();
+        } catch (Exception e) {
+            throw new IllegalArgumentException(e);
+        }
     }
 }

@@ -81,17 +81,17 @@ public class HttpEceUtils {
     }
 
     private byte[] encrypt(byte[] localPublicKey, byte[] secret, byte[] plaintext, byte[] salt) throws GeneralSecurityException {
-        byte[][] keyAndNonce = deriveKeyAndNonce(secret, salt);
+        final byte[][] keyAndNonce = deriveKeyAndNonce(secret, salt);
         return encrypt(keyAndNonce, localPublicKey, plaintext, salt);
     }
 
     private byte[] encrypt(byte[][] keyAndNonce, byte[] localPublicKey, byte[] plaintext, byte[] salt) throws GeneralSecurityException {
-        byte[] key = keyAndNonce[0];
-        byte[] nonce = keyAndNonce[1];
+        final byte[] key = keyAndNonce[0];
+        final byte[] nonce = keyAndNonce[1];
 
         // Note: Cipher adds the tag to the end of the ciphertext
-        Cipher cipher = Cipher.getInstance("AES/GCM/NoPadding", "BC");
-        GCMParameterSpec params = new GCMParameterSpec(TAG_SIZE * 8, nonce);
+        final Cipher cipher = Cipher.getInstance("AES/GCM/NoPadding", "BC");
+        final GCMParameterSpec params = new GCMParameterSpec(TAG_SIZE * 8, nonce);
         cipher.init(ENCRYPT_MODE, new SecretKeySpec(key, "AES"), params);
 
         // For AES128GCM suffix {0x02}.
@@ -101,8 +101,8 @@ public class HttpEceUtils {
     }
 
     private byte[] buildHeader(byte[] localPublicKeyByte, byte[] salt, int len) {
-        byte[] rs = toByteArray(len * 8, 4);
-        byte[] idlen = new byte[]{(byte) localPublicKeyByte.length};
+        final byte[] rs = toByteArray(len * 8, 4);
+        final byte[] idlen = new byte[]{(byte) localPublicKeyByte.length};
         return concat(salt, rs, idlen, localPublicKeyByte);
     }
 
@@ -110,26 +110,26 @@ public class HttpEceUtils {
      * Convenience method for computing the HMAC Key Derivation Function. The real work is offloaded to BouncyCastle.
      */
     private static byte[] hkdfExpand(byte[] ikm, byte[] salt, byte[] info, int length) {
-        HKDFBytesGenerator hkdf = new HKDFBytesGenerator(new SHA256Digest());
+        final HKDFBytesGenerator hkdf = new HKDFBytesGenerator(new SHA256Digest());
         hkdf.init(new HKDFParameters(ikm, salt, info));
 
-        byte[] okm = new byte[length];
+        final byte[] okm = new byte[length];
         hkdf.generateBytes(okm, 0, length);
         return okm;
     }
 
 
     private byte[][] deriveKeyAndNonce(KeyPair localKeypair, byte[] salt, ECPublicKey dh, byte[] authSecret) throws NoSuchAlgorithmException, InvalidKeyException {
-        byte[] secret = extractSecret(localKeypair, dh, authSecret);
+        final byte[] secret = extractSecret(localKeypair, dh, authSecret);
         return deriveKeyAndNonce(secret, salt);
     }
 
     private byte[][] deriveKeyAndNonce(byte[] secret, byte[] salt) {
-        byte[] keyInfo = "Content-Encoding: aes128gcm\0".getBytes(UTF_8);
-        byte[] nonceInfo = "Content-Encoding: nonce\0".getBytes(UTF_8);
+        final byte[] keyInfo = "Content-Encoding: aes128gcm\0".getBytes(UTF_8);
+        final byte[] nonceInfo = "Content-Encoding: nonce\0".getBytes(UTF_8);
 
-        byte[] hkdf_key = hkdfExpand(secret, salt, keyInfo, 16);
-        byte[] hkdf_nonce = hkdfExpand(secret, salt, nonceInfo, 12);
+        final byte[] hkdf_key = hkdfExpand(secret, salt, keyInfo, 16);
+        final byte[] hkdf_nonce = hkdfExpand(secret, salt, nonceInfo, 12);
         return new byte[][]{
                 hkdf_key,
                 hkdf_nonce,
@@ -141,7 +141,6 @@ public class HttpEceUtils {
         if (dh == null) {
             return encode((ECPublicKey) localKeypair.getPublic());
         }
-
         return webpushSecret(localKeypair, dh, authSecret);
     }
 
@@ -151,13 +150,13 @@ public class HttpEceUtils {
      * See <a href="https://tools.ietf.org/html/draft-ietf-webpush-encryption-09#section-3.3">...</a>.
      */
     public byte[] webpushSecret(KeyPair localKeypair, ECPublicKey dh, byte[] authSecret) throws NoSuchAlgorithmException, InvalidKeyException {
-        ECPublicKey senderPubKey = (ECPublicKey) localKeypair.getPublic();
+        final ECPublicKey senderPubKey = (ECPublicKey) localKeypair.getPublic();
 
-        KeyAgreement keyAgreement = KeyAgreement.getInstance("ECDH");
+        final KeyAgreement keyAgreement = KeyAgreement.getInstance("ECDH");
         keyAgreement.init(localKeypair.getPrivate());
         keyAgreement.doPhase(dh, true);
-        byte[] ikm = keyAgreement.generateSecret();
-        byte[] info = concat(WEB_PUSH_INFO.getBytes(UTF_8), encode(dh), encode(senderPubKey));
+        final byte[] ikm = keyAgreement.generateSecret();
+        final byte[] info = concat(WEB_PUSH_INFO.getBytes(UTF_8), encode(dh), encode(senderPubKey));
         return hkdfExpand(ikm, authSecret, info, SHA_256_LENGTH);
     }
 }

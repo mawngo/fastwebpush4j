@@ -22,8 +22,8 @@ import static org.bouncycastle.jce.provider.BouncyCastleProvider.PROVIDER_NAME;
 
 @UtilityClass
 public class Utils {
-    public static final String CURVE = "prime256v1";
-    public static final String ALGORITHM = "ECDH";
+    private static final String CURVE = "prime256v1";
+    private static final String ALGORITHM = "ECDH";
 
     public static byte[] decodeBase64(String toDecode) {
         try {
@@ -37,7 +37,7 @@ public class Utils {
      * Create a byte array of the given length from the given integer.
      */
     public static byte[] toByteArray(int integer, int size) {
-        ByteBuffer buffer = ByteBuffer.allocate(size);
+        final ByteBuffer buffer = ByteBuffer.allocate(size);
         buffer.putInt(integer);
         return buffer.array();
     }
@@ -109,12 +109,11 @@ public class Utils {
      * Load the public key from a byte array.
      */
     static PublicKey loadPublicKey(byte[] decodedPublicKey) throws NoSuchProviderException, NoSuchAlgorithmException, InvalidKeySpecException {
-        KeyFactory keyFactory = KeyFactory.getInstance(ALGORITHM, PROVIDER_NAME);
-        ECParameterSpec parameterSpec = ECNamedCurveTable.getParameterSpec(CURVE);
-        ECCurve curve = parameterSpec.getCurve();
-        ECPoint point = curve.decodePoint(decodedPublicKey);
-        ECPublicKeySpec pubSpec = new ECPublicKeySpec(point, parameterSpec);
-
+        final KeyFactory keyFactory = KeyFactory.getInstance(ALGORITHM, PROVIDER_NAME);
+        final ECParameterSpec parameterSpec = ECNamedCurveTable.getParameterSpec(CURVE);
+        final ECCurve curve = parameterSpec.getCurve();
+        final ECPoint point = curve.decodePoint(decodedPublicKey);
+        final ECPublicKeySpec pubSpec = new ECPublicKeySpec(point, parameterSpec);
         return keyFactory.generatePublic(pubSpec);
     }
 
@@ -135,11 +134,10 @@ public class Utils {
      * Load the private key from a byte array.
      */
     static PrivateKey loadPrivateKey(byte[] decodedPrivateKey) throws NoSuchProviderException, NoSuchAlgorithmException, InvalidKeySpecException {
-        BigInteger s = BigIntegers.fromUnsignedByteArray(decodedPrivateKey);
-        ECParameterSpec parameterSpec = ECNamedCurveTable.getParameterSpec(CURVE);
-        ECPrivateKeySpec privateKeySpec = new ECPrivateKeySpec(s, parameterSpec);
-        KeyFactory keyFactory = KeyFactory.getInstance(ALGORITHM, PROVIDER_NAME);
-
+        final BigInteger s = BigIntegers.fromUnsignedByteArray(decodedPrivateKey);
+        final ECParameterSpec parameterSpec = ECNamedCurveTable.getParameterSpec(CURVE);
+        final ECPrivateKeySpec privateKeySpec = new ECPrivateKeySpec(s, parameterSpec);
+        final KeyFactory keyFactory = KeyFactory.getInstance(ALGORITHM, PROVIDER_NAME);
         return keyFactory.generatePrivate(privateKeySpec);
     }
 
@@ -147,10 +145,9 @@ public class Utils {
      * Verify that the private key belongs to the public key.
      */
     static boolean verifyKeyPair(PrivateKey privateKey, PublicKey publicKey) {
-        ECNamedCurveParameterSpec curveParameters = ECNamedCurveTable.getParameterSpec(CURVE);
-        ECPoint g = curveParameters.getG();
-        ECPoint sG = g.multiply(((java.security.interfaces.ECPrivateKey) privateKey).getS());
-
+        final ECNamedCurveParameterSpec curveParameters = ECNamedCurveTable.getParameterSpec(CURVE);
+        final ECPoint g = curveParameters.getG();
+        final ECPoint sG = g.multiply(((java.security.interfaces.ECPrivateKey) privateKey).getS());
         return sG.equals(((ECPublicKey) publicKey).getQ());
     }
 }

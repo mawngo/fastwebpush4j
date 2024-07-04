@@ -17,6 +17,9 @@ public enum Urgency {
         this.headerValue = urgency;
     }
 
+    /**
+     * Get the header value of this urgency.
+     */
     public String getHeaderValue() {
         return headerValue;
     }

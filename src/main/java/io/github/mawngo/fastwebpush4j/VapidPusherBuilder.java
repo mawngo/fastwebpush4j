@@ -73,7 +73,7 @@ public final class VapidPusherBuilder {
      * Use default client with specific http version enabled.
      */
     @Deprecated
-    private VapidPusherBuilder withClientHttpVersion(String... httpVersions) {
+    public VapidPusherBuilder withClientHttpVersion(String... httpVersions) {
         final ClientConnector connector = new ClientConnector();
         final var clientConnections = Arrays.stream(httpVersions).map(version -> {
             switch (version) {

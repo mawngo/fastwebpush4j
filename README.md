@@ -13,7 +13,7 @@ Add library to gradle dependencies.
 
 ```groovy
 dependencies {
-    implementation 'io.github.mawngo:fastwebpush4j:0.1.0'
+    implementation 'io.github.mawngo:fastwebpush4j:0.1.1'
 }
 ```
 

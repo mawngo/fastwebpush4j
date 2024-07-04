@@ -34,10 +34,9 @@ publishing {
             from components.java
 
             pom {
-                name = 'Lark Client'
-                description = 'Dead simple Lark webhook client'
-                url = "${aboutPage}"
-
+                name = "${aboutName}"
+                description = "${aboutDescription}"
+                url = project.properties["aboutPage"] ?: "https://${projectGit}"
                 licenses {
                     license {
                         name = 'MIT License'
@@ -50,6 +49,11 @@ publishing {
                         name = "${aboutDeveloperName}"
                         email = "${aboutDeveloperEmail}"
                     }
+                }
+                scm {
+                    connection = "scm:git:git:${projectGit}.git"
+                    developerConnection = "scm:git:ssh://${projectGit}.git"
+                    url = "https://${projectGit}"
                 }
             }
         }

@@ -34,6 +34,6 @@ public class Subscription {
     public static final class LocalKey {
         private final String secret;
         private final String publicKey;
-        private final long expire;
+        private final long at;
     }
 }

@@ -67,7 +67,7 @@ public final class VapidPusherBuilder {
     /**
      * Configure the expiry time of cached local public key and secret. Set to 0 to disable any caching.
      */
-    public VapidPusherBuilder localKeyTTL(long expiry, TimeUnit unit) {
+    public VapidPusherBuilder localSecretTTL(long expiry, TimeUnit unit) {
         this.localKeyExpireNanos = unit.toNanos(expiry);
         return this;
     }

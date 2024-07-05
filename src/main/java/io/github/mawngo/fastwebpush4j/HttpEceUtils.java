@@ -50,7 +50,7 @@ public class HttpEceUtils {
         // expireNanos <= 0 mean we disabled this feature.
         if (expireNanos > 0 && subscription.getLocalKey() != null) {
             final var localKey = subscription.getLocalKey();
-            if (localKey.getExpire() > Instant.now().toEpochMilli()) {
+            if (localKey.getAt() > Instant.now().minus(expireNanos, ChronoUnit.NANOS).toEpochMilli()) {
                 final var decode = Base64.getUrlDecoder();
                 return encrypt(
                         decode.decode(localKey.getPublicKey()),
@@ -74,7 +74,7 @@ public class HttpEceUtils {
                 new Subscription.LocalKey(
                         encoder.encodeToString(keyAndNonce[2]),
                         encoder.encodeToString(localPublicKey),
-                        Instant.now().plus(expireNanos, ChronoUnit.NANOS).toEpochMilli()
+                        Instant.now().toEpochMilli()
                 )
         );
         return encrypt(keyAndNonce, localPublicKey, plaintext, salt);

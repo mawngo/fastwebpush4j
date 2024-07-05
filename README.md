@@ -13,7 +13,7 @@ Add library to gradle dependencies.
 
 ```groovy
 dependencies {
-    implementation 'io.github.mawngo:fastwebpush4j:1.0.0'
+    implementation 'io.github.mawngo:fastwebpush4j:2.0.0'
 }
 ```
 
@@ -42,8 +42,8 @@ public class Main {
 
         // Build the pusher.
         final var pusher = VapidPusher.builder("example@example.com", publicKey, privateKey)
-            .vapidTokenTTL(2, TimeUnit.HOURS) // Configure vapid cache time.
-            .localKeyTTL(10, TimeUnit.HOURS)  // Enable local key caching.
+            .vapidTokenTTL(2, TimeUnit.HOURS)    // Configure vapid and local keypair cache time.
+            .localSecretTTL(10, TimeUnit.HOURS)  // Enable local public key and secret caching.
             .build();
 
         // Send the message.

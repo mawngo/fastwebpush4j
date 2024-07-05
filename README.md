@@ -2,29 +2,28 @@
 
 Implement of VAPID webpush that sacrifice security and feature for raw speed.
 
-This library use jetty client to send push for better http2 performance over java `HttpClient`, thus make the minimum
-supported java version to be at least 17.
+This library use java `HttpClient` for sending push.
 
 ## Installation
 
-Require java 17+.
+Require java 11+.
 
 Add library to gradle dependencies.
 
 ```groovy
 dependencies {
-    implementation 'io.github.mawngo:fastwebpush4j:2.0.0'
+    implementation 'io.github.mawngo:fastwebpush4j:2.0.0-java11'
 }
 ```
 
 ## Example Usage
 
 ```java
-package io.github.mawngo.fastwebpush4j.example;
-
 import io.github.mawngo.fastwebpush4j.Subscription;
 import io.github.mawngo.fastwebpush4j.VapidPusher;
 
+import java.net.http.HttpClient;
+import java.net.http.HttpResponse;
 import java.util.concurrent.TimeUnit;
 
 public class Main {
@@ -41,16 +40,16 @@ public class Main {
         );
 
         // Build the pusher.
+        final var client = HttpClient.newHttpClient();
         final var pusher = VapidPusher.builder("example@example.com", publicKey, privateKey)
             .vapidTokenTTL(2, TimeUnit.HOURS)    // Configure vapid and local keypair cache time.
             .localSecretTTL(10, TimeUnit.HOURS)  // Enable local public key and secret caching.
             .build();
 
         // Send the message.
-        final var res = pusher.prepareRequest("Test".getBytes(), sub).send();
-        System.out.println(res.getStatus());
-        // Close after used.
-        pusher.close();
+        var req = pusher.prepareRequest("Hello World!".getBytes(), sub);
+        var res = client.send(req, HttpResponse.BodyHandlers.ofString());
+        System.out.println(res.statusCode());
     }
 }
 ```

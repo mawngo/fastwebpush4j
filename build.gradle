@@ -12,8 +12,8 @@ version "${projectVersion}"
 
 
 java {
-    sourceCompatibility = JavaVersion.VERSION_17
-    targetCompatibility = JavaVersion.VERSION_17
+    sourceCompatibility = JavaVersion.VERSION_11
+    targetCompatibility = JavaVersion.VERSION_11
 }
 
 allprojects {
@@ -71,8 +71,6 @@ dependencies {
     compileOnly 'org.projectlombok:lombok'
     annotationProcessor 'org.projectlombok:lombok'
 
-    api 'org.eclipse.jetty:jetty-client:12.0.10'
-    api 'org.eclipse.jetty.http2:jetty-http2-client-transport:12.0.10'
     implementation 'org.bouncycastle:bcpkix-jdk15on:1.70'
     implementation 'org.bitbucket.b_c:jose4j:0.7.9'
 }

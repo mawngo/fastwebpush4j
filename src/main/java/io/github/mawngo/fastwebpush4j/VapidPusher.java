@@ -1,14 +1,10 @@
 package io.github.mawngo.fastwebpush4j;
 
+import lombok.Value;
+import lombok.experimental.Accessors;
 import org.bouncycastle.jce.ECNamedCurveTable;
 import org.bouncycastle.jce.interfaces.ECPublicKey;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
-import org.eclipse.jetty.client.BytesRequestContent;
-import org.eclipse.jetty.client.HttpClient;
-import org.eclipse.jetty.client.Request;
-import org.eclipse.jetty.client.Response;
-import org.eclipse.jetty.http.HttpMethod;
-import org.eclipse.jetty.util.component.LifeCycle;
 import org.jose4j.jws.AlgorithmIdentifiers;
 import org.jose4j.jws.JsonWebSignature;
 import org.jose4j.jwt.JwtClaims;
@@ -16,13 +12,17 @@ import org.jose4j.lang.JoseException;
 
 import java.io.Closeable;
 import java.net.MalformedURLException;
+import java.net.URISyntaxException;
 import java.net.URL;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
 import java.security.*;
+import java.time.Duration;
 import java.time.Instant;
 import java.util.Base64;
 import java.util.Random;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.TimeUnit;
 
 /**
  * Vapid push service.
@@ -42,11 +42,6 @@ public final class VapidPusher implements Closeable {
      * Random generator for generating salt.
      */
     private final Random random;
-
-    /**
-     * Client used to send notification
-     */
-    private final HttpClient client;
 
     /**
      * Subject used in the JWT payload (for VAPID)
@@ -93,10 +88,8 @@ public final class VapidPusher implements Closeable {
                 long pushTimeoutNanos,
                 long vapidTokenExpireNanos,
                 long localKeyExpireNanos,
-                HttpClient client,
                 Random random) throws Exception {
         this.subject = subject;
-        this.client = client;
         this.random = random;
         this.vapidTokenExpireNanos = vapidTokenExpireNanos;
         this.pushTimeoutNanos = pushTimeoutNanos;
@@ -112,15 +105,12 @@ public final class VapidPusher implements Closeable {
         }
         final var pk = Utils.encode((ECPublicKey) publicKey);
         base64PublicKeyCryptoWithoutPadding = Base64.getUrlEncoder().withoutPadding().encodeToString(pk);
-
-        // Start the client.
-        this.client.start();
     }
 
     /**
-     * Create webpush request. After created, use {@link Request#send(Response.CompleteListener) send} to send request.
+     * Create webpush request. After created, use {@link HttpClient#send(HttpRequest, HttpResponse.BodyHandler)} to send request.
      */
-    public Request prepareRequest(byte[] payload, Subscription subscription, NotificationOptions options) {
+    public HttpRequest prepareRequest(byte[] payload, Subscription subscription, NotificationOptions options) {
         try {
             return doPrepareRequest(payload, subscription, options);
         } catch (MalformedURLException | GeneralSecurityException e) {
@@ -129,15 +119,13 @@ public final class VapidPusher implements Closeable {
     }
 
     /**
-     * Create webpush request. After created, use {@link Request#send(Response.CompleteListener) send} to send request.
-     *
-     * @see #prepareRequest(byte[], Subscription, NotificationOptions)
+     * Create webpush request. After created, use {@link HttpClient#send(HttpRequest, HttpResponse.BodyHandler)} to send request.
      */
-    public Request prepareRequest(byte[] payload, Subscription subscription) {
+    public HttpRequest prepareRequest(byte[] payload, Subscription subscription) {
         return prepareRequest(payload, subscription, new NotificationOptions());
     }
 
-    private Request doPrepareRequest(byte[] payload, Subscription subscription, NotificationOptions options) throws GeneralSecurityException, MalformedURLException {
+    private HttpRequest doPrepareRequest(byte[] payload, Subscription subscription, NotificationOptions options) throws GeneralSecurityException, MalformedURLException {
         final var url = new URL(subscription.getEndpoint());
         final var keys = generateKeys(url.getProtocol() + "://" + url.getHost());
 
@@ -145,21 +133,27 @@ public final class VapidPusher implements Closeable {
         random.nextBytes(salt);
         final var ciphertext = HttpEceUtils.encrypt(keys.keyPair, payload, salt, subscription, localKeyExpireNanos);
 
-        return client.newRequest(subscription.getEndpoint())
-                .method(HttpMethod.POST)
-                .timeout(pushTimeoutNanos, TimeUnit.NANOSECONDS)
-                .headers(header -> {
-                    header.add("TTL", String.valueOf(options.ttl()));
-                    header.add("Content-Encoding", "aes128gcm");
-                    header.add("Authorization", "vapid t=" + keys.jws + ", k=" + base64PublicKeyCryptoWithoutPadding);
-                    if (options.topic() != null && !options.topic().isEmpty()) {
-                        header.add("Topic", options.topic());
-                    }
-                    if (options.urgency() != null) {
-                        header.add("Urgency", options.urgency().getHeaderValue());
-                    }
-                })
-                .body(new BytesRequestContent("application/octet-stream", ciphertext));
+        final var builder = HttpRequest.newBuilder();
+        builder
+                .header("TTL", String.valueOf(options.ttl()))
+                .header("Content-Encoding", "aes128gcm")
+                .header("Authorization", "vapid t=" + keys.jws + ", k=" + base64PublicKeyCryptoWithoutPadding)
+                .header("Content-Type", "application/octet-stream");
+        if (options.urgency() != null) {
+            builder.header("Urgency", options.urgency().getHeaderValue());
+        }
+        if (options.topic() != null && !options.topic().isEmpty()) {
+            builder.header("Topic", options.topic());
+        }
+        try {
+            return builder
+                    .uri(url.toURI())
+                    .POST(HttpRequest.BodyPublishers.ofByteArray(ciphertext))
+                    .timeout(Duration.ofNanos(pushTimeoutNanos))
+                    .build();
+        } catch (URISyntaxException e) {
+            throw new IllegalArgumentException(e);
+        }
     }
 
     /**
@@ -222,7 +216,12 @@ public final class VapidPusher implements Closeable {
         }
     }
 
-    private record ReusableWebPushKeys(KeyPair keyPair, String jws, Instant expireAt) {
+    @Value
+    @Accessors(fluent = true)
+    private static class ReusableWebPushKeys {
+        KeyPair keyPair;
+        String jws;
+        Instant expireAt;
     }
 
 
@@ -230,7 +229,8 @@ public final class VapidPusher implements Closeable {
      * Close the backing {@link HttpClient client}
      */
     @Override
+    @Deprecated
     public void close() {
-        new Thread(() -> LifeCycle.stop(client)).start();
+        // No-op.
     }
 }

@@ -7,7 +7,7 @@ supported java version to be at least 17.
 
 ## Installation
 
-Require java 17+.
+Require java 17+. For java 11 support: check [java11 branch](https://github.com/mawngo/fastwebpush4j/tree/java11)
 
 Add library to gradle dependencies.
 

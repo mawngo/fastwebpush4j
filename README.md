@@ -17,6 +17,18 @@ dependencies {
 }
 ```
 
+## Optimization
+
+This library provides some optimizations which can be enabled when creating `VapidPusher`.
+
+- `vapidTokenTTL`: Caching vapid jwt token, and local public key + secret for each host. This optimization is enabled by
+  default and can be disabled by setting it to `0`.
+- `localSecretTTL`: Enable local public key and secret reuse, the pusher will reuse provided. When enabled, the pusher
+  will reuse local public key and secret if provided in `Subscription.LocalKey` otherwise it generate secret and
+  local public key to `Subscription.LocalKey`. We can save those case for reuse for the later push to the same
+  `Subscription`.
+- `withRandom`: Allow to configure alternative `Random` implementation.
+
 ## Example Usage
 
 ```java

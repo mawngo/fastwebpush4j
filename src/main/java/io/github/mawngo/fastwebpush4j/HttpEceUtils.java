@@ -47,7 +47,7 @@ public class HttpEceUtils {
      */
     public byte[] encrypt(KeyPair localKeypair, byte[] plaintext, byte[] salt, Subscription subscription, long expireNanos) throws GeneralSecurityException {
         // Reuse the local key if it's still valid.
-        // expireNanos <= 0 mean we disabled this feature.
+        // expireNanos <= 0 means we disabled this feature.
         if (expireNanos > 0 && subscription.getLocalKey() != null) {
             final var localKey = subscription.getLocalKey();
             if (localKey.getAt() > Instant.now().minus(expireNanos, ChronoUnit.NANOS).toEpochMilli()) {

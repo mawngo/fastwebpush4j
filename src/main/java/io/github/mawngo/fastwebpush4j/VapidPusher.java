@@ -69,7 +69,7 @@ public final class VapidPusher implements Closeable {
     private final long vapidTokenExpireNanos;
 
     /**
-     * The generate local secret and public key timeout
+     * The generated local secret and public key timeout
      */
     private final long localKeyExpireNanos;
 

@@ -34,7 +34,7 @@ publishing {
 }
 
 mavenPublishing {
-    publishToMavenCentral()
+    publishToMavenCentral(true)
     if (project.hasProperty("signing.keyId") || System.getenv("ORG_GRADLE_PROJECT_signingInMemoryKey") != null) {
         signAllPublications()
     }

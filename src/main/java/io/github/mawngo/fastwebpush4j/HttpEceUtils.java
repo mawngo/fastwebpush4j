@@ -36,7 +36,8 @@ import static javax.crypto.Cipher.ENCRYPT_MODE;
 @UtilityClass
 public class HttpEceUtils {
     public static final int SHA_256_LENGTH = 32;
-    public static final int TAG_SIZE = 16;
+    public static final int TAG_SIZE_BYTE = 16;
+    public static final int RS_SIZE_BYTE = 4;
     public static final String WEB_PUSH_INFO = "WebPush: info\0";
 
     /**
@@ -91,17 +92,25 @@ public class HttpEceUtils {
 
         // Note: Cipher adds the tag to the end of the ciphertext
         final Cipher cipher = Cipher.getInstance("AES/GCM/NoPadding", "BC");
-        final GCMParameterSpec params = new GCMParameterSpec(TAG_SIZE * 8, nonce);
+        final GCMParameterSpec params = new GCMParameterSpec(TAG_SIZE_BYTE * 8, nonce);
         cipher.init(ENCRYPT_MODE, new SecretKeySpec(key, "AES"), params);
 
         // For AES128GCM suffix {0x02}.
-        final byte[] header = buildHeader(localPublicKey, salt, plaintext.length);
+        final byte[] header = buildHeader(localPublicKey, salt);
         final byte[] encrypted = concat(cipher.update(plaintext), cipher.update(new byte[]{2}), cipher.doFinal());
         return concat(header, encrypted);
     }
 
-    private byte[] buildHeader(byte[] localPublicKeyByte, byte[] salt, int len) {
-        final byte[] rs = toByteArray(len * 8, 4);
+    private byte[] buildHeader(byte[] localPublicKeyByte, byte[] salt) {
+        // https://datatracker.ietf.org/doc/html/rfc8291#section-4
+        // An application server MUST set the "rs"
+        // parameter in the "aes128gcm" content coding header to a size that is
+        // greater than the sum of the lengths of the plaintext, the padding
+        // delimiter (1 octet), any padding, and the authentication tag (16
+        // octets).
+        // Which should be: (plaintext.length + 1 + 0 (no padding) + TAG_SIZE_BYTE) * 8
+        // However, most webpush lib I found use fixed value 4096, which is the max payload size.
+        final byte[] rs = toByteArray(4096, RS_SIZE_BYTE);
         final byte[] idlen = new byte[]{(byte) localPublicKeyByte.length};
         return concat(salt, rs, idlen, localPublicKeyByte);
     }
